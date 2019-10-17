@@ -26,5 +26,6 @@ fn main() {
         for ev in d.events_no_sync().unwrap() {
             println!("{:?}", ev);
         }
+        println!("loop");
     }
 }

@@ -50,7 +50,6 @@ use std::path::Path;
 use std::ffi::CString;
 use std::mem::size_of;
 use fixedbitset::FixedBitSet;
-use num::traits::WrappingSub;
 
 use nix::Error;
 
@@ -669,11 +668,12 @@ impl Device {
     pub fn open(path: &AsRef<Path>) -> Result<Device, Error> {
         let cstr = match CString::new(path.as_ref().as_os_str().as_bytes()) {
             Ok(s) => s,
-            Err(e) => return Err(Error::InvalidPath),
+            Err(_) => return Err(Error::InvalidPath),
         };
         // FIXME: only need for writing is for setting LED values. re-evaluate always using RDWR
         // later.
-        let fd = unsafe { libc::open(cstr.as_ptr(), libc::O_NONBLOCK | libc::O_RDWR | libc::O_CLOEXEC, 0) };
+        //let fd = unsafe { libc::open(cstr.as_ptr(), libc::O_NONBLOCK | libc::O_RDWR | libc::O_CLOEXEC, 0) };
+        let fd = unsafe { libc::open(cstr.as_ptr(), libc::O_RDONLY, 0) };
         if fd == -1 {
             return Err(Error::from_errno(::nix::Errno::last()));
         }
@@ -928,7 +928,7 @@ impl Device {
     }
 
     fn fill_events(&mut self) -> Result<(), Error> {
-        let mut buf = &mut self.pending_events;
+        let buf = &mut self.pending_events;
         loop {
             buf.reserve(20);
             let pre_len = buf.len();
@@ -949,6 +949,7 @@ impl Device {
                 unsafe {
                     buf.set_len(pre_len + (sz as usize / size_of::<raw::input_event>()));
                 }
+                break;
             }
         }
         Ok(())
